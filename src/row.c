@@ -1,22 +1,21 @@
+//**************************************************//
+// Solving finite difference based poisson equation 
+// 1. Assuming n X n matrix                         
+// 2. n % procs = 0
+// 3. Forcing parameter: f = 2.0
+//**************************************************//
+
 #include <stdio.h>
 #include <mpi.h>
 #include <stdlib.h>
 #include <math.h>
 #include "domain.h"
-
-void set_boundaries(float *u, long long int rpb, long long int cpb, int nprocs, int id);
-void send_to_top(float *u, float *top_buffer, long long int rpb, long long int n_node, int nprocs, int id, MPI_Comm comm);
-void send_to_bot(float *u, float *bot_buffer, long long int rpb, long long int n_node, int nprocs, int id, MPI_Comm comm);
-void check_neighbor(float *u, float *top_buffer, float *bot_buffer, long long int cpb, int nprocs, int id, long long int rpb, float *new_val, float f, float h);
+#include "row.h"
 
 int main(argc, argv)
 int argc;
 char *argv[];
 {
-
-// 1. Assuming n X n matrix
-// 2. n % procs = 0
-
 	int ierr;
 	int nprocs, id;
 
@@ -27,8 +26,6 @@ char *argv[];
 
 	long long int n_node;
 	float h;
-
-// Solving finite difference based poisson equation
 
 	if(id == 0)
 	{
@@ -69,8 +66,6 @@ char *argv[];
 	
 	set_boundaries(&u[0], rpb, cpb, nprocs, id);
 
-	//print_domain(&u[0], &dum[0], id, cpb, rpb, nprocs, comm);
-	
 	for(s = 0; s < cpb; s++)
 	{
 		top_buffer[s] = 0;
@@ -186,7 +181,7 @@ void check_neighbor(float *u, float *top_buffer, float *bot_buffer, long long in
 		for (i = 0; i < cpb; i++)
 		{
 			
-			//left			
+			//check left neighbor
 			if ((i) % cpb == 0)
 			{
 				left_val = 0.;
@@ -196,7 +191,7 @@ void check_neighbor(float *u, float *top_buffer, float *bot_buffer, long long in
 				left_val = u[k * cpb + i -1];
 			}
 	
-			//right
+			//check right neighbor
 	
 			if ((i+1) % cpb == 0)
 			{
@@ -208,7 +203,7 @@ void check_neighbor(float *u, float *top_buffer, float *bot_buffer, long long in
 			}
 
 		
-			//top
+			//check top neighbor
 			if (k == 0)
 			{
 				if (id == 0)
@@ -225,7 +220,7 @@ void check_neighbor(float *u, float *top_buffer, float *bot_buffer, long long in
 				top_val = u[cpb * (k-1) + i];
 			}
 
-			//bottom
+			//check bottom neighbor
 			if (k == rpb -1)
 			{
 				if (id == nprocs -1)

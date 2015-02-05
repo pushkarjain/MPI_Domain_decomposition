@@ -1,4 +1,4 @@
-#include "domain.h"
+//#include "domain.h"
 #include <mpi.h>
 
 void set_left_boundary(float *u, long long int rpb, long long int cpb)
