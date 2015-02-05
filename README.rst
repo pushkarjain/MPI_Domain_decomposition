@@ -1,6 +1,11 @@
 README
 ======
 
+About
+-----
+
+A C++ code written with MPI to analyze the scalability of matrix-vector product based on row wise and block wise domain decomposition. Solves the Poissons equation using finite difference scheme.
+
 Generate binary
 ---------------
 
@@ -12,4 +17,5 @@ Usage
 -----
 
 The code can be executed using::
-    ./out
+
+    **./out**
