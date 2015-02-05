@@ -1,24 +1,21 @@
+//**************************************************//
+// Solving finite difference based poisson equation 
+// 1. Assuming n X n matrix                         
+// 2. n % procs = 0
+// 3. Forcing parameter: f = 2.0
+//**************************************************//
+
 #include <stdio.h>
 #include <mpi.h>
 #include <stdlib.h>
 #include <math.h>
 #include "domain.h"
-
-void set_boundaries(float *u, long long int rpb, long long int cpb, int nprocs, int id);
-void send_to_right(float *u, float *right_buffer, long long int rpb, long long int cpb, int nprocs, int id, MPI_Comm comm);
-void send_to_left(float *u, float *left_buffer, long long int rpb, long long int cpb, int nprocs, int id, MPI_Comm comm);
-void send_to_top(float *u, float *top_buffer, long long int rpb, long long int n_node, int nprocs, int id, MPI_Comm comm);
-void send_to_bot(float *u, float *bot_buffer, long long int rpb, long long int n_node, int nprocs, int id, MPI_Comm comm);
-void check_neighbor(float *u, float *top_buffer, float *bot_buffer, float *right_buffer, float *left_buffer, long long int cpb, int nprocs, int id, long long int rpb, float *new_val, float f, float h);
+#include "block.h"
 
 int main(argc, argv)
 int argc;
 char *argv[];
 {
-
-// 1. Assuming n X n matrix
-// 2. n % procs = 0
-
 	int ierr;
 	int nprocs, id;
 	
@@ -34,13 +31,11 @@ char *argv[];
 	sqp = sqrt(nprocs);
 	float h;
 
-// Solving finite difference based poisson equation
 
 	if(id == 0)
 	{
 		printf("\nEnter the number of nodes\t:\t ");
 		scanf("%lld", &n_node);
-		//n_node = 512;
 		if ((n_node) % sqp != 0)
 		{
 			printf("Cant divide blocks\n");
@@ -52,7 +47,6 @@ char *argv[];
 	h = 1.0/(n_node - 1.0);
 	long long int rpb = n_node/sqp; //rows per block
 	long long int cpb = n_node/sqp; // columns per block
-
 	
 	float *u, *new_val, *top_buffer, *bot_buffer, *left_buffer, *right_buffer;
 	u = malloc((rpb * cpb) * sizeof(float));
@@ -77,9 +71,6 @@ char *argv[];
 	}
 	
 	set_boundaries(&u[0], rpb, cpb, nprocs, id);
-	//printf("id: %d %d\n", id, nprocs);
-
-	//print_domain(&u[0], &dum[0], id, cpb, rpb, nprocs, comm);
 
 	for(s = 0; s < cpb; s++)
 	{
@@ -124,7 +115,7 @@ char *argv[];
 	return(0); 
 }
 
-
+//Set the boundary conditions
 void set_boundaries(float *u, long long int rpb, long long int cpb, int nprocs, int id)
 {
 	int sqp;
@@ -148,11 +139,12 @@ void set_boundaries(float *u, long long int rpb, long long int cpb, int nprocs, 
 	}
 }
 
+
+//send data to top buffer
 void send_to_top(float *u, float *top_buffer, long long int rpb, long long int cpb, int nprocs, int id, MPI_Comm comm)
 {
 	int src, dest, sqp;
 	sqp = sqrt(nprocs);
-	//send data to top buffer
 	if (id >= sqp * (sqp-1))
 	{
 		src = id - sqp;
@@ -172,6 +164,7 @@ void send_to_top(float *u, float *top_buffer, long long int rpb, long long int c
 }
 
 
+//send data to bottom buffer
 void send_to_bot(float *u, float *bot_buffer, long long int rpb, long long int cpb, int nprocs, int id, MPI_Comm comm)
 {
 	int src, dest, sqp;
@@ -195,6 +188,7 @@ void send_to_bot(float *u, float *bot_buffer, long long int rpb, long long int c
 }
 
 
+//send data to right buffer
 void send_to_right(float *u, float *right_buffer, long long int rpb, long long int cpb, int nprocs, int id, MPI_Comm comm)
 {
 
@@ -225,6 +219,7 @@ void send_to_right(float *u, float *right_buffer, long long int rpb, long long i
 }
 
 
+//send data to left buffer
 void send_to_left(float *u, float *left_buffer, long long int rpb, long long int cpb, int nprocs, int id, MPI_Comm comm)
 {
 	int src, dest, sqp;
@@ -262,7 +257,7 @@ void check_neighbor(float *u, float *top_buffer, float *bot_buffer, float *right
 		for (i = 0; i < cpb; i++)
 		{
 
-			//left
+			//check left neighbors
 			if (i % cpb == 0)
 			{
 				if (id % sqp == 0)
@@ -279,8 +274,7 @@ void check_neighbor(float *u, float *top_buffer, float *bot_buffer, float *right
 				left_val = u[k * cpb + i - 1];
 			}
 	
-			//right
-	
+			//check right neighbors
 			if ((i+1) % cpb == 0)
 			{
 				if ((id + 1)%sqp == 0)
@@ -298,7 +292,7 @@ void check_neighbor(float *u, float *top_buffer, float *bot_buffer, float *right
 			}
 
 		
-			//top
+			//check top neighbors
 			if (k == 0)
 			{
 				if (id < sqp)
@@ -315,7 +309,7 @@ void check_neighbor(float *u, float *top_buffer, float *bot_buffer, float *right
 				top_val = u[cpb * (k-1) + i];
 			}
 
-			//bottom
+			//check bottom neighbors
 			if (k == rpb - 1)
 			{
 				if (id >  sqp * (sqp -1))
